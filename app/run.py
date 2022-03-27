@@ -1,14 +1,16 @@
 import json
 import plotly
 import pandas as pd
+import re
 
 from nltk.stem import WordNetLemmatizer
 from nltk.tokenize import word_tokenize
+from nltk.corpus import stopwords
 
 from flask import Flask
 from flask import render_template, request, jsonify
 from plotly.graph_objs import Bar
-from sklearn.externals import joblib
+import joblib
 from sqlalchemy import create_engine
 
 
@@ -25,12 +27,40 @@ def tokenize(text):
 
     return clean_tokens
 
+def tokenize(text):
+    
+    # Detect & Replace URL
+    url_regex = 'http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+'
+    urls = re.findall(url_regex, text)
+    for url in urls:
+        text = text.replace(url, "urlplaceholder")
+        
+    # normalization
+    text = re.sub(r"[^a-zA-Z0-9]", " ", text.lower())
+    
+    # Tokenize text
+    words = word_tokenize(text)
+    
+    # Remove stop words
+    words = [w for w in words if w not in stopwords.words("english")]
+    
+    # Lemmatize
+    lemmatizer = WordNetLemmatizer()
+    
+    clean_words = []
+    for word in words:
+        clean_word = lemmatizer.lemmatize(word).strip()
+        clean_words.append(clean_word)
+        
+    return clean_words
+
+
 # load data
-engine = create_engine('sqlite:///../data/YourDatabaseName.db')
-df = pd.read_sql_table('YourTableName', engine)
+engine = create_engine('sqlite:///../data/MyEngine_Yi.db')
+df = pd.read_sql_table('RawData', engine)
 
 # load model
-model = joblib.load("../models/your_model_name.pkl")
+model = joblib.load("../models/NLP_model_Yi.pkl")
 
 
 # index webpage displays cool visuals and receives user input text for model

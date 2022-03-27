@@ -12,7 +12,7 @@ from nltk import pos_tag
 import pandas as pd
 import numpy as np
 from sqlalchemy import create_engine
-from sklearn.externals import joblib
+import joblib
 import re
 
 from sklearn.base import BaseEstimator, TransformerMixin
