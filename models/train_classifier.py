@@ -1,24 +1,92 @@
+# import libraries
+import nltk
+nltk.download('punkt')
+nltk.download('wordnet')
+nltk.download('stopwords')
+
+from nltk.tokenize import sent_tokenize, word_tokenize
+from nltk.corpus import stopwords
+from nltk.stem import WordNetLemmatizer
+from nltk import pos_tag
+
+import pandas as pd
+import numpy as np
+from sqlalchemy import create_engine
+from sklearn.externals import joblib
+import re
+
+from sklearn.base import BaseEstimator, TransformerMixin
+from sklearn.feature_extraction.text import TfidfTransformer, CountVectorizer
+from sklearn.pipeline import Pipeline
+
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.multioutput import MultiOutputClassifier
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import classification_report
+from sklearn.neighbors import KNeighborsClassifier
+
 import sys
 
 
 def load_data(database_filepath):
-    pass
+    engine = create_engine('sqlite:///' + database_filepath)
+    df = pd.read_sql('SELECT * FROM RawData', engine)
+    X = df.message
+    Y = df.iloc[:,4:]
+    # Remove NaN in Y.
+    X_clean = X[~Y.isnull().any(axis = 1)]
+    Y_clean = Y[~Y.isnull().any(axis = 1)]
+    category_names = Y_clean.columns.tolist()
+    return X_clean,  Y_clean, category_names
 
 
 def tokenize(text):
-    pass
+    
+    # Detect & Replace URL
+    url_regex = 'http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+'
+    urls = re.findall(url_regex, text)
+    for url in urls:
+        text = text.replace(url, "urlplaceholder")
+        
+    # normalization
+    text = re.sub(r"[^a-zA-Z0-9]", " ", text.lower())
+    
+    # Tokenize text
+    words = word_tokenize(text)
+    
+    # Remove stop words
+    words = [w for w in words if w not in stopwords.words("english")]
+    
+    # Lemmatize
+    lemmatizer = WordNetLemmatizer()
+    
+    clean_words = []
+    for word in words:
+        clean_word = lemmatizer.lemmatize(word).strip()
+        clean_words.append(clean_word)
+        
+    return clean_words
 
 
 def build_model():
-    pass
+    # parameters from grid search: 'clf__estimator__n_estimators': 12, 'clf__estimator__n_jobs': 1, 'vect__max_df': 1.0
+    pipeline_cv = Pipeline([
+        ('vect',CountVectorizer(tokenizer = tokenize, max_df = 1.0)),
+        ('tfidf',TfidfTransformer()),
+        ('clf', MultiOutputClassifier(RandomForestClassifier(n_estimators = 12, n_jobs = 1)))
+    ])
+    return pipeline_cv
 
 
 def evaluate_model(model, X_test, Y_test, category_names):
-    pass
+    y_pred = model.predict(X_test)
+    for i, col in enumerate(category_names):
+        print(f'Report for category: {col}:')
+        print(classification_report(Y_test.iloc[:,i], y_pred[:,i]))
 
 
 def save_model(model, model_filepath):
-    pass
+    joblib.dump(model, model_filepath)
 
 
 def main():
