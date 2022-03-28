@@ -27,7 +27,10 @@ def clean_data(df):
         categories[column] = categories[column].astype('str').str[-1:]
         # convert column from string to numeric
         categories[column] = categories[column].astype('int')
-    
+        # convert label 2 to 1
+        if categories[column].nunique() > 2:
+            categories.loc[categories[column] == 2, column] = 1
+
     df.drop(columns = 'categories', inplace = True)
     df = pd.concat([df, categories], axis = 1)
     df = df.drop_duplicates()

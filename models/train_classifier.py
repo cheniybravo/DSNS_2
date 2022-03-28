@@ -18,7 +18,7 @@ import re
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.feature_extraction.text import TfidfTransformer, CountVectorizer
 from sklearn.pipeline import Pipeline
-
+from sklearn.model_selection import GridSearchCV
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.multioutput import MultiOutputClassifier
 from sklearn.model_selection import train_test_split
@@ -80,15 +80,18 @@ def tokenize(text):
 
 def build_model():
     """
-    Model training pipeline. Parameters are preset to best parameters from grid search.
+    Model training pipeline using grid search.
     """
-    # parameters from grid search: 'clf__estimator__n_estimators': 12, 'clf__estimator__n_jobs': 1, 'vect__max_df': 1.0
-    pipeline_cv = Pipeline([
-        ('vect',CountVectorizer(tokenizer = tokenize, max_df = 1.0)),
+    pipeline = Pipeline([
+        ('vect',CountVectorizer(tokenizer = tokenize)),
         ('tfidf',TfidfTransformer()),
-        ('clf', MultiOutputClassifier(RandomForestClassifier(n_estimators = 12, n_jobs = 1)))
+        ('clf', MultiOutputClassifier(RandomForestClassifier()))
     ])
-    return pipeline_cv
+    parameters = {
+    'clf__estimator__n_estimators':[10,12]
+    }
+    cv = GridSearchCV(pipeline, param_grid = parameters)
+    return cv
 
 
 def evaluate_model(model, X_test, Y_test, category_names):
