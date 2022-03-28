@@ -4,12 +4,20 @@ import sys
 from sqlalchemy import create_engine
 
 def load_data(messages_filepath, categories_filepath):
+    """
+    Load raw data from 2 sources, merge into one dataframe.
+    """
     messages = pd.read_csv(messages_filepath)
     categories = pd.read_csv(categories_filepath)
     df = pd.merge(messages, categories, how = 'inner', on = 'id')
     return df
 
 def clean_data(df):
+    """
+    Data Cleaning Process, including:
+        1. split category varible into 36 separate columns with 0/1 values in each cell.
+        2. drop duplicates.
+    """
     categories = df['categories'].str.split(";", expand = True)
     row = categories.iloc[0,:]
     category_colnames = row.apply(lambda x: x[:-2])
@@ -26,6 +34,9 @@ def clean_data(df):
     return df
     
 def save_data(df, database_filename):
+    """
+    Save clean data into a database.
+    """
     engine = create_engine('sqlite:///' + database_filename)
     df.to_sql('RawData', engine, index = False, if_exists = 'replace')
 

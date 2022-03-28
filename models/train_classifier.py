@@ -29,6 +29,9 @@ import sys
 
 
 def load_data(database_filepath):
+    """
+    Load clean data from database. Remove rows with null response variables.
+    """
     engine = create_engine('sqlite:///' + database_filepath)
     df = pd.read_sql('SELECT * FROM RawData', engine)
     X = df.message
@@ -41,7 +44,14 @@ def load_data(database_filepath):
 
 
 def tokenize(text):
-    
+    """
+    NLP pipeline that conducts the following:
+        1. Replace URL
+        2. Normalization: Remove special character, convert everything to lowercase.
+        3. Tokenize: Split message to words.
+        4. Remove Stop Words.
+        5. Lemmatize: Convert variant forms of words to their original form.
+    """
     # Detect & Replace URL
     url_regex = 'http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+'
     urls = re.findall(url_regex, text)
@@ -69,6 +79,9 @@ def tokenize(text):
 
 
 def build_model():
+    """
+    Model training pipeline. Parameters are preset to best parameters from grid search.
+    """
     # parameters from grid search: 'clf__estimator__n_estimators': 12, 'clf__estimator__n_jobs': 1, 'vect__max_df': 1.0
     pipeline_cv = Pipeline([
         ('vect',CountVectorizer(tokenizer = tokenize, max_df = 1.0)),
@@ -79,6 +92,9 @@ def build_model():
 
 
 def evaluate_model(model, X_test, Y_test, category_names):
+    """
+    Model performance evaluation.
+    """
     y_pred = model.predict(X_test)
     for i, col in enumerate(category_names):
         print(f'Report for category: {col}:')
@@ -86,6 +102,9 @@ def evaluate_model(model, X_test, Y_test, category_names):
 
 
 def save_model(model, model_filepath):
+    """
+    Save model as pickle file.
+    """
     joblib.dump(model, model_filepath)
 
 
